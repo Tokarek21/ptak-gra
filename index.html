@@ -1,23 +1,21 @@
 <!DOCTYPE html>
-<html>
+<html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>Ptak vs Myśliwi</title>
+<title>Ptak vs Myśliwi – wersja ulepszona</title>
 <style>
   body { margin:0; background:#222; display:flex; justify-content:center; }
-  canvas { background:white; margin-top:20px; }
+  canvas { background:#a0e7ff; margin-top:20px; border:3px solid #333; }
 </style>
 </head>
 <body>
-
 <canvas id="game" width="800" height="440"></canvas>
-
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-
 const TILE = 40;
 
+// Labirynt 2D (1=ściana, 0=wolna droga)
 const maze = [
 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -28,86 +26,109 @@ const maze = [
 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
+// Gracz – ptak
 let player = {x:1, y:1};
+
+// Myśliwi
 let hunters = [
   {x:18, y:1},
   {x:10, y:3},
   {x:15, y:5}
 ];
 
-function drawMaze() {
-  for (let y=0; y<maze.length; y++) {
-    for (let x=0; x<maze[y].length; x++) {
-      if (maze[y][x] === 1) {
-        ctx.fillStyle = "green";
-        ctx.fillRect(x*TILE, y*TILE, TILE, TILE);
+// Gniazdo – cel
+let nest = {x:18, y:5};
+
+// Funkcje rysowania
+function drawMaze(){
+  for(let y=0; y<maze.length; y++){
+    for(let x=0; x<maze[y].length; x++){
+      if(maze[y][x]===1){
+        ctx.fillStyle="green";
+        ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
       }
     }
   }
 }
 
-function drawPlayer() {
-  ctx.fillStyle = "blue";
-  ctx.fillRect(player.x*TILE+5, player.y*TILE+5, TILE-10, TILE-10);
+function drawPlayer(){
+  ctx.fillStyle="blue";
+  ctx.beginPath();
+  ctx.arc(player.x*TILE+TILE/2,player.y*TILE+TILE/2,TILE/2-5,0,2*Math.PI);
+  ctx.fill();
 }
 
-function drawHunters() {
-  ctx.fillStyle = "red";
-  hunters.forEach(h => {
-    ctx.fillRect(h.x*TILE+5, h.y*TILE+5, TILE-10, TILE-10);
+function drawHunters(){
+  ctx.fillStyle="red";
+  hunters.forEach(h=>{
+    ctx.beginPath();
+    ctx.rect(h.x*TILE+5,h.y*TILE+5,TILE-10,TILE-10);
+    ctx.fill();
   });
 }
 
-function moveHunter(h) {
-  const dirs = [
-    {x:1,y:0},{x:-1,y:0},
-    {x:0,y:1},{x:0,y:-1}
-  ];
-  let dir = dirs[Math.floor(Math.random()*dirs.length)];
-  let nx = h.x + dir.x;
-  let ny = h.y + dir.y;
-  if (maze[ny][nx] === 0) {
-    h.x = nx;
-    h.y = ny;
-  }
+function drawNest(){
+  ctx.fillStyle="yellow";
+  ctx.beginPath();
+  ctx.arc(nest.x*TILE+TILE/2,nest.y*TILE+TILE/2,TILE/2-5,0,2*Math.PI);
+  ctx.fill();
 }
 
-document.addEventListener("keydown", e => {
-  let nx = player.x;
-  let ny = player.y;
-
-  if (e.key === "ArrowLeft") nx--;
-  if (e.key === "ArrowRight") nx++;
-  if (e.key === "ArrowUp") ny--;
-  if (e.key === "ArrowDown") ny++;
-
-  if (maze[ny][nx] === 0) {
-    player.x = nx;
-    player.y = ny;
+// Sterowanie graczem
+document.addEventListener("keydown",e=>{
+  let nx=player.x;
+  let ny=player.y;
+  if(e.key==="ArrowLeft") nx--;
+  if(e.key==="ArrowRight") nx++;
+  if(e.key==="ArrowUp") ny--;
+  if(e.key==="ArrowDown") ny++;
+  if(maze[ny][nx]===0){
+    player.x=nx;
+    player.y=ny;
   }
 });
 
-function checkCollision() {
-  for (let h of hunters) {
-    if (h.x === player.x && h.y === player.y) {
-      alert("GAME OVER");
+// AI myśliwych – lekkie podążanie za graczem
+function moveHunter(h){
+  let dx = player.x - h.x;
+  let dy = player.y - h.y;
+  let moveOptions = [];
+  if(dx!==0) moveOptions.push({x:Math.sign(dx),y:0});
+  if(dy!==0) moveOptions.push({x:0,y:Math.sign(dy)});
+  if(moveOptions.length===0) return; 
+  let dir = moveOptions[Math.floor(Math.random()*moveOptions.length)];
+  let nx=h.x+dir.x;
+  let ny=h.y+dir.y;
+  if(maze[ny][nx]===0) { h.x=nx; h.y=ny; }
+}
+
+// Kolizje
+function checkCollision(){
+  for(let h of hunters){
+    if(h.x===player.x && h.y===player.y){
+      alert("GAME OVER!");
       location.reload();
     }
   }
+  if(player.x===nest.x && player.y===nest.y){
+    alert("GRATULACJE! Dotarłeś do gniazda!");
+    location.reload();
+  }
 }
 
-function gameLoop() {
+// Główna pętla gry
+function gameLoop(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   drawMaze();
+  drawNest();
   drawPlayer();
   drawHunters();
   hunters.forEach(moveHunter);
   checkCollision();
-  setTimeout(gameLoop, 500);
+  setTimeout(gameLoop,300);
 }
 
 gameLoop();
 </script>
-
 </body>
 </html>
