@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>Ptak vs Myśliwi – wersja ulepszona</title>
+<title>Ptak vs Myśliwi – wersja ulepszona 2.0</title>
 <style>
   body { margin:0; background:#222; display:flex; justify-content:center; }
   canvas { background:#a0e7ff; margin-top:20px; border:3px solid #333; }
@@ -31,9 +31,9 @@ let player = {x:1, y:1};
 
 // Myśliwi
 let hunters = [
-  {x:18, y:1},
-  {x:10, y:3},
-  {x:15, y:5}
+  {x:18, y:1, cooldown:0},
+  {x:10, y:3, cooldown:0},
+  {x:15, y:5, cooldown:0}
 ];
 
 // Gniazdo – cel
@@ -88,18 +88,33 @@ document.addEventListener("keydown",e=>{
   }
 });
 
-// AI myśliwych – lekkie podążanie za graczem
+// AI myśliwych – wolniejszy ruch + 50% szansy podążania
 function moveHunter(h){
-  let dx = player.x - h.x;
-  let dy = player.y - h.y;
+  if(h.cooldown>0){
+    h.cooldown--;
+    return;
+  }
+  h.cooldown = 1; // ruch co 2 pętle
+
   let moveOptions = [];
-  if(dx!==0) moveOptions.push({x:Math.sign(dx),y:0});
-  if(dy!==0) moveOptions.push({x:0,y:Math.sign(dy)});
-  if(moveOptions.length===0) return; 
+  // 50% szansy na ruch w kierunku gracza
+  if(Math.random()<0.5){
+    let dx = player.x - h.x;
+    let dy = player.y - h.y;
+    if(dx!==0) moveOptions.push({x:Math.sign(dx),y:0});
+    if(dy!==0) moveOptions.push({x:0,y:Math.sign(dy)});
+  }
+  // 50% szansy ruch losowy
+  if(Math.random()<0.5){
+    const dirs = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+    moveOptions.push(dirs[Math.floor(Math.random()*dirs.length)]);
+  }
+  if(moveOptions.length===0) return;
+
   let dir = moveOptions[Math.floor(Math.random()*moveOptions.length)];
   let nx=h.x+dir.x;
   let ny=h.y+dir.y;
-  if(maze[ny][nx]===0) { h.x=nx; h.y=ny; }
+  if(maze[ny][nx]===0){ h.x=nx; h.y=ny; }
 }
 
 // Kolizje
